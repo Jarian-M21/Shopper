@@ -1,0 +1,660 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Shopper</title>
+<style>
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0;
+    height: 100%;
+    background: #f4f1ea;
+    color: #1a1a1a;
+    font-family: system-ui, sans-serif;
+  }
+  body {
+    height: 100vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    padding: 10px 16px 8px;
+  }
+  h1 {
+    margin: 0;
+    font-family: Palatino, Georgia, serif;
+    font-weight: normal;
+    font-size: 28px;
+    line-height: 1.1;
+  }
+  .subtitle {
+    margin: 2px 0 8px;
+    font-size: 14px;
+    line-height: 1.3;
+  }
+  .actions { display: flex; gap: 8px; margin: 0 0 8px; }
+  button { font: inherit; cursor: pointer; }
+  .primary, .ghost {
+    font-size: 14px;
+    padding: 6px 12px;
+    border-radius: 4px;
+  }
+  .primary {
+    background: #00356b;
+    color: #fff;
+    border: 1px solid #00356b;
+  }
+  .ghost {
+    background: transparent;
+    color: #1a1a1a;
+    border: 1px solid #d9d3c7;
+  }
+  .layout {
+    display: flex;
+    gap: 16px;
+    min-height: 0;
+    flex: 1;
+  }
+  .courses { width: 340px; flex: none; }
+  .course {
+    display: flex;
+    gap: 8px;
+    align-items: flex-start;
+    padding: 3px 0;
+    line-height: 1.25;
+    font-size: 14px;
+  }
+  .course.off { opacity: 0.48; }
+  .course .code { color: #00356b; font-weight: 600; }
+  .course .when {
+    display: block;
+    margin-top: 1px;
+    font-size: 12.5px;
+  }
+  .main {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+  .status { margin: 0 0 6px; font-size: 14px; line-height: 1.3; }
+  .weeks { display: flex; gap: 10px; }
+  .week { flex: 1; min-width: 0; }
+  .week h2 {
+    margin: 0 0 4px;
+    font-family: system-ui, sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+  }
+  .days {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 4px;
+  }
+  .day-name { font-size: 11px; margin-bottom: 3px; }
+  .block {
+    display: block;
+    width: 100%;
+    margin: 0 0 3px;
+    padding: 3px 4px;
+    border: 1px solid transparent;
+    text-align: left;
+    font: inherit;
+    font-size: 11px;
+    line-height: 1.25;
+    cursor: pointer;
+  }
+  .block span { display: block; }
+  .block .code { color: #00356b; font-weight: 600; }
+  .block.selected { border-color: #1a1a1a; }
+  .open { font-size: 11px; color: #8a8478; padding: 2px 0 0; }
+  .entrance { margin: 6px 0 0; font-size: 13px; line-height: 1.35; }
+  .cards {
+    margin-top: 6px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .card {
+    background: #fff;
+    border: 1px solid #d9d3c7;
+    padding: 5px 8px;
+    font-size: 12.5px;
+    line-height: 1.35;
+  }
+  .card p { margin: 0; }
+  .card p + p { margin-top: 2px; }
+  .card.bad { border-color: #9f2d20; color: #9f2d20; }
+  .card.good { border-color: #24574a; color: #24574a; }
+  .card h3 { margin: 0 0 2px; font-size: 13px; font-weight: 600; }
+  .card ul { margin: 0; padding-left: 16px; }
+  .card li + li { margin-top: 1px; }
+  footer { margin-top: 6px; font-size: 11px; line-height: 1.3; }
+</style>
+</head>
+<body>
+  <header>
+    <h1>Shopper</h1>
+    <p class="subtitle">A two-week route into every class you are shopping. Back-to-backs that the walk makes impossible are marked.</p>
+    <div class="actions">
+      <button type="button" class="primary" id="plan-btn">Plan my shopping</button>
+      <button type="button" class="ghost" id="reset-btn">Reset</button>
+    </div>
+  </header>
+  <div class="layout">
+    <aside class="courses" id="courses"></aside>
+    <div class="main">
+      <p class="status" id="status">Pick the classes you might take, then plan the two weeks.</p>
+      <div class="weeks" id="weeks"></div>
+      <p class="entrance" id="entrance" hidden></p>
+      <div class="cards" id="cards"></div>
+    </div>
+  </div>
+  <footer>Demo roster. Times follow Yale College standard meeting patterns. Walks are on foot, with no shuttle.</footer>
+<script>
+(function () {
+  var BUILDINGS = {
+    SCL: {
+      name: "Sterling Chemistry Laboratory",
+      cluster: "science-hill",
+      entrance: "225 Prospect. Use the Prospect Street doors. The room is on the first floor."
+    },
+    SPL: {
+      name: "Sloane Physics Laboratory",
+      cluster: "science-hill",
+      entrance: "Science Hill. Use the main entrance facing the walk."
+    },
+    WLH: {
+      name: "William L. Harkness Hall",
+      cluster: "cross-campus",
+      entrance: "100 Wall Street. This building is the Whale. The room is one floor up from the Wall Street doors."
+    },
+    AKW: {
+      name: "Arthur K. Watson Hall",
+      cluster: "hillhouse",
+      entrance: "51 Prospect Street. The room is on the second floor."
+    },
+    HQ: {
+      name: "Humanities Quadrangle",
+      cluster: "hq",
+      entrance: "320 York Street. Enter from York Street. Second-floor room numbers do not follow the street you came in from."
+    },
+    LC: {
+      name: "Linsly-Chittenden Hall",
+      cluster: "high-street",
+      entrance: "63 High Street. The room is on the second floor, off the High Street entrance."
+    }
+  };
+
+  var WALKS = {
+    "cross-campus|high-street": 6,
+    "cross-campus|hillhouse": 10,
+    "cross-campus|hq": 8,
+    "cross-campus|science-hill": 16,
+    "high-street|hillhouse": 12,
+    "high-street|hq": 8,
+    "high-street|science-hill": 18,
+    "hillhouse|hq": 12,
+    "hillhouse|science-hill": 12,
+    "hq|science-hill": 22
+  };
+
+  var COURSES = [
+    { code: "PHYS 180", title: "University Physics", color: "#d5e6e4", days: ["Tue", "Thu"], start: 540, end: 615, building: "SPL", room: "59" },
+    { code: "ECON 115", title: "Introductory Microeconomics", color: "#dcead7", days: ["Tue", "Thu"], start: 695, end: 770, building: "WLH", room: "207" },
+    { code: "CPSC 201", title: "Introduction to Computer Science", color: "#f7e7c6", days: ["Tue", "Thu"], start: 785, end: 860, building: "AKW", room: "200" },
+    { code: "CHEM 161", title: "General Chemistry I", color: "#d9e4f5", days: ["Mon", "Wed", "Fri"], start: 810, end: 860, building: "SCL", room: "110" },
+    { code: "ENGL 129", title: "The Modern Essay", color: "#f3d6cf", days: ["Mon", "Wed", "Fri"], start: 875, end: 925, building: "HQ", room: "241" },
+    { code: "PHIL 180", title: "Problems of Philosophy", color: "#e7e0f2", days: ["Wed"], start: 810, end: 925, building: "LC", room: "205" }
+  ];
+
+  var DAYS = ["Mon1", "Tue1", "Wed1", "Thu1", "Fri1", "Mon2", "Tue2", "Wed2", "Thu2", "Fri2"];
+  var WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri"];
+  var PLURAL = {
+    Mon: "Mondays",
+    Tue: "Tuesdays",
+    Wed: "Wednesdays",
+    Thu: "Thursdays",
+    Fri: "Fridays"
+  };
+  var SINGULAR = {
+    Mon: "Monday",
+    Tue: "Tuesday",
+    Wed: "Wednesday",
+    Thu: "Thursday",
+    Fri: "Friday"
+  };
+
+  var checked = {};
+  var planned = false;
+  var activeKey = null;
+  COURSES.forEach(function (course) { checked[course.code] = true; });
+
+  var coursesEl = document.getElementById("courses");
+  var statusEl = document.getElementById("status");
+  var weeksEl = document.getElementById("weeks");
+  var entranceEl = document.getElementById("entrance");
+  var cardsEl = document.getElementById("cards");
+
+  function walk(a, b) {
+    if (a === b) return 0;
+    var ca = BUILDINGS[a].cluster;
+    var cb = BUILDINGS[b].cluster;
+    if (ca === cb) return 4;
+    var key = ca < cb ? ca + "|" + cb : cb + "|" + ca;
+    return WALKS[key];
+  }
+
+  function formatTime(mins) {
+    var h = Math.floor(mins / 60);
+    var m = mins % 60;
+    if (h === 0) h = 12;
+    else if (h > 12) h = h - 12;
+    return h + ":" + (m < 10 ? "0" + m : String(m));
+  }
+
+  function formatRange(start, end) {
+    return formatTime(start) + "\u2013" + formatTime(end);
+  }
+
+  function formatDays(days) {
+    if (days.length === 1) return days[0];
+    if (days.length === 2) return days[0] + " and " + days[1];
+    return days.slice(0, -1).join(", ") + ", and " + days[days.length - 1];
+  }
+
+  function weekdayOf(day) {
+    return day.slice(0, 3);
+  }
+
+  function selectedCourses() {
+    return COURSES.filter(function (course) { return checked[course.code]; });
+  }
+
+  function expand(selected) {
+    var sessions = [];
+    selected.forEach(function (course) {
+      DAYS.forEach(function (day) {
+        if (course.days.indexOf(weekdayOf(day)) === -1) return;
+        sessions.push({
+          code: course.code,
+          color: course.color,
+          day: day,
+          start: course.start,
+          end: course.end,
+          building: course.building,
+          room: course.room
+        });
+      });
+    });
+    return sessions;
+  }
+
+  function remainingCount(code, dayIndex, sessions) {
+    var n = 0;
+    for (var i = 0; i < sessions.length; i++) {
+      if (sessions[i].code === code && DAYS.indexOf(sessions[i].day) >= dayIndex) n++;
+    }
+    return n;
+  }
+
+  function seenRank(count) {
+    if (count === 0) return 0;
+    if (count === 1) return 1;
+    return 2;
+  }
+
+  function seenEarlierThisWeek(code, day, result) {
+    var week = day.slice(3);
+    var names = ["Mon", "Tue", "Wed", "Thu", "Fri"];
+    var today = names.indexOf(day.slice(0, 3));
+    for (var i = 0; i < today; i++) {
+      var sessions = result[names[i] + week];
+      for (var s = 0; s < sessions.length; s++) {
+        if (sessions[s].code === code) return true;
+      }
+    }
+    return false;
+  }
+
+  function overlaps(a, b) {
+    return a.start < b.end && b.start < a.end;
+  }
+
+  function fits(chosen, session) {
+    for (var i = 0; i < chosen.length; i++) {
+      var other = chosen[i];
+      if (overlaps(session, other)) return false;
+      if (session.end <= other.start && other.start - session.end < walk(session.building, other.building)) return false;
+      if (other.end <= session.start && session.start - other.end < walk(other.building, session.building)) return false;
+    }
+    return true;
+  }
+
+  function buildPlan(selected) {
+    var sessions = expand(selected);
+    var visited = {};
+    selected.forEach(function (course) { visited[course.code] = 0; });
+    var result = {};
+    DAYS.forEach(function (day) { result[day] = []; });
+
+    DAYS.forEach(function (day, dayIndex) {
+      var candidates = sessions.filter(function (session) { return session.day === day; });
+      var chosen = [];
+      while (candidates.length) {
+        // A course already seen this week does not fill a later day by itself.
+        if (candidates.length === 1 && chosen.length === 0 && seenEarlierThisWeek(candidates[0].code, day, result)) break;
+        candidates.sort(function (a, b) {
+          var rank = seenRank(visited[a.code]) - seenRank(visited[b.code]);
+          if (rank !== 0) return rank;
+          var remain = remainingCount(a.code, dayIndex, sessions) - remainingCount(b.code, dayIndex, sessions);
+          if (remain !== 0) return remain;
+          if (a.start !== b.start) return a.start - b.start;
+          if (a.code < b.code) return -1;
+          if (a.code > b.code) return 1;
+          return 0;
+        });
+        var candidate = candidates.shift();
+        if (fits(chosen, candidate)) {
+          chosen.push(candidate);
+          visited[candidate.code]++;
+        }
+      }
+      chosen.sort(function (a, b) {
+        if (a.start !== b.start) return a.start - b.start;
+        if (a.code < b.code) return -1;
+        if (a.code > b.code) return 1;
+        return 0;
+      });
+      result[day] = chosen;
+    });
+    return result;
+  }
+
+  function gapInfo(a, b) {
+    if (overlaps(a, b)) return { overlap: true };
+    if (a.end <= b.start) {
+      return { overlap: false, first: a, second: b, gap: b.start - a.end };
+    }
+    if (b.end <= a.start) {
+      return { overlap: false, first: b, second: a, gap: a.start - b.end };
+    }
+    return { overlap: false, gap: null };
+  }
+
+  function pairsForWeekday(courses, weekday) {
+    var meeting = courses.filter(function (course) {
+      return course.days.indexOf(weekday) !== -1;
+    });
+    var pairs = [];
+    for (var i = 0; i < meeting.length; i++) {
+      for (var j = i + 1; j < meeting.length; j++) pairs.push([meeting[i], meeting[j]]);
+    }
+    return pairs;
+  }
+
+  function appearsOn(plan, code, weekday) {
+    for (var i = 0; i < DAYS.length; i++) {
+      if (weekdayOf(DAYS[i]) !== weekday) continue;
+      var sessions = plan[DAYS[i]];
+      for (var s = 0; s < sessions.length; s++) {
+        if (sessions[s].code === code) return true;
+      }
+    }
+    return false;
+  }
+
+  function scheduledNames(plan, code) {
+    var names = [];
+    WEEKDAYS.forEach(function (weekday) {
+      if (appearsOn(plan, code, weekday)) names.push(PLURAL[weekday]);
+    });
+    return names;
+  }
+
+  function planSentence(plan, codeA, codeB) {
+    var aDays = scheduledNames(plan, codeA);
+    var bDays = scheduledNames(plan, codeB);
+    var aHalf = aDays.length ? "puts " + codeA + " on " + aDays.join(" and ") : "does not get you into " + codeA;
+    var bHalf = bDays.length ? codeB + " on " + bDays.join(" and ") : "does not get you into " + codeB;
+    return "The plan " + aHalf + " and " + bHalf + ".";
+  }
+
+  function keptCourse(plan, weekday, a, b) {
+    var aOn = appearsOn(plan, a.code, weekday);
+    var bOn = appearsOn(plan, b.code, weekday);
+    if (aOn && !bOn) return a.code;
+    if (bOn && !aOn) return b.code;
+    return a.code;
+  }
+
+  function week1Complete(selected, plan) {
+    return selected.every(function (course) {
+      return DAYS.some(function (day) {
+        if (day.charAt(day.length - 1) !== "1") return false;
+        return plan[day].some(function (session) { return session.code === course.code; });
+      });
+    });
+  }
+
+  function unseenCourses(selected, plan) {
+    return selected.filter(function (course) {
+      return !DAYS.some(function (day) {
+        return plan[day].some(function (session) { return session.code === course.code; });
+      });
+    });
+  }
+
+  function clearEntrance() {
+    activeKey = null;
+    entranceEl.hidden = true;
+    entranceEl.textContent = "";
+  }
+
+  function renderCourses() {
+    coursesEl.innerHTML = "";
+    COURSES.forEach(function (course) {
+      var label = document.createElement("label");
+      label.className = "course" + (checked[course.code] ? "" : " off");
+      var input = document.createElement("input");
+      input.type = "checkbox";
+      input.checked = checked[course.code];
+      input.addEventListener("change", function () {
+        checked[course.code] = input.checked;
+        label.className = "course" + (input.checked ? "" : " off");
+        if (planned) showPlan();
+      });
+      var info = document.createElement("span");
+      var line1 = document.createElement("span");
+      var code = document.createElement("span");
+      code.className = "code";
+      code.textContent = course.code;
+      line1.appendChild(code);
+      line1.appendChild(document.createTextNode(" " + course.title));
+      var line2 = document.createElement("span");
+      line2.className = "when";
+      line2.textContent = formatDays(course.days) + ", " + formatRange(course.start, course.end) + ", " + course.building + " " + course.room;
+      info.appendChild(line1);
+      info.appendChild(line2);
+      label.appendChild(input);
+      label.appendChild(info);
+      coursesEl.appendChild(label);
+    });
+  }
+
+  function renderWeeks(plan) {
+    weeksEl.innerHTML = "";
+    [1, 2].forEach(function (week) {
+      var section = document.createElement("section");
+      section.className = "week";
+      var heading = document.createElement("h2");
+      heading.textContent = "Week " + week;
+      section.appendChild(heading);
+      var days = document.createElement("div");
+      days.className = "days";
+      WEEKDAYS.forEach(function (weekday) {
+        var col = document.createElement("div");
+        var name = document.createElement("div");
+        name.className = "day-name";
+        name.textContent = weekday;
+        col.appendChild(name);
+        var sessions = plan[weekday + week];
+        if (!sessions.length) {
+          var open = document.createElement("div");
+          open.className = "open";
+          open.textContent = "Open";
+          col.appendChild(open);
+        }
+        sessions.forEach(function (session) {
+          var block = document.createElement("button");
+          block.type = "button";
+          block.className = "block";
+          block.style.background = session.color;
+          var when = document.createElement("span");
+          when.textContent = formatRange(session.start, session.end);
+          var code = document.createElement("span");
+          code.className = "code";
+          code.textContent = session.code;
+          var where = document.createElement("span");
+          where.textContent = session.building + " " + session.room;
+          block.appendChild(when);
+          block.appendChild(code);
+          block.appendChild(where);
+          var key = session.day + "|" + session.code;
+          block.addEventListener("click", function () {
+            if (activeKey === key) {
+              clearEntrance();
+              block.classList.remove("selected");
+              return;
+            }
+            var selected = weeksEl.querySelectorAll(".block.selected");
+            for (var i = 0; i < selected.length; i++) selected[i].classList.remove("selected");
+            activeKey = key;
+            block.classList.add("selected");
+            entranceEl.hidden = false;
+            entranceEl.textContent = BUILDINGS[session.building].entrance;
+          });
+          col.appendChild(block);
+        });
+        days.appendChild(col);
+      });
+      section.appendChild(days);
+      weeksEl.appendChild(section);
+    });
+  }
+
+  function addText(parent, text) {
+    var p = document.createElement("p");
+    p.textContent = text;
+    parent.appendChild(p);
+  }
+
+  function renderCards(selected, plan) {
+    cardsEl.innerHTML = "";
+    var unseen = unseenCourses(selected, plan);
+    if (unseen.length) {
+      var unseenCard = document.createElement("div");
+      unseenCard.className = "card bad";
+      unseen.forEach(function (course) {
+        addText(unseenCard, "You never see " + course.code + ". Every meeting loses to another class.");
+      });
+      cardsEl.appendChild(unseenCard);
+    }
+
+    WEEKDAYS.forEach(function (weekday) {
+      pairsForWeekday(selected, weekday).forEach(function (pair) {
+        var info = gapInfo(pair[0], pair[1]);
+        if (info.overlap || info.gap === null) return;
+        var minutes = walk(info.first.building, info.second.building);
+        if (info.gap >= minutes) return;
+        var card = document.createElement("div");
+        card.className = "card bad";
+        addText(card, info.first.code + " ends in " + info.first.building + " at " + formatTime(info.first.end) + ". " + info.second.code + " starts in " + info.second.building + " at " + formatTime(info.second.start) + ". You have " + info.gap + " minutes. The walk is " + minutes + ".");
+        addText(card, planSentence(plan, info.first.code, info.second.code));
+        cardsEl.appendChild(card);
+      });
+    });
+
+    var overlapLines = [];
+    WEEKDAYS.forEach(function (weekday) {
+      pairsForWeekday(selected, weekday).forEach(function (pair) {
+        if (!gapInfo(pair[0], pair[1]).overlap) return;
+        var kept = keptCourse(plan, weekday, pair[0], pair[1]);
+        overlapLines.push(pair[0].code + " and " + pair[1].code + " overlap on " + SINGULAR[weekday] + ". The plan keeps " + kept + ".");
+      });
+    });
+    if (overlapLines.length) {
+      var same = document.createElement("div");
+      same.className = "card";
+      var heading = document.createElement("h3");
+      heading.textContent = "Same hour.";
+      same.appendChild(heading);
+      var list = document.createElement("ul");
+      overlapLines.forEach(function (line) {
+        var item = document.createElement("li");
+        item.textContent = line;
+        list.appendChild(item);
+      });
+      same.appendChild(list);
+      cardsEl.appendChild(same);
+    }
+
+    var best = null;
+    WEEKDAYS.forEach(function (weekday, weekdayIndex) {
+      pairsForWeekday(selected, weekday).forEach(function (pair) {
+        var info = gapInfo(pair[0], pair[1]);
+        if (info.overlap || info.gap === null) return;
+        var minutes = walk(info.first.building, info.second.building);
+        if (info.gap < minutes) return;
+        var slack = info.gap - minutes;
+        if (slack > 20) return;
+        if (!best || slack < best.slack || (slack === best.slack && weekdayIndex < best.weekdayIndex)) {
+          best = { slack: slack, weekdayIndex: weekdayIndex, info: info, minutes: minutes };
+        }
+      });
+    });
+    if (best) {
+      var calm = document.createElement("div");
+      calm.className = "card good";
+      var first = best.info.first;
+      var second = best.info.second;
+      addText(calm, "You can make this one. " + first.code + " ends in " + first.building + " at " + formatTime(first.end) + " and " + second.code + " starts in " + second.building + " at " + formatTime(second.start) + ". You have " + best.info.gap + " minutes, and the walk is " + best.minutes + ".");
+      cardsEl.appendChild(calm);
+    }
+  }
+
+  function showPlan() {
+    planned = true;
+    clearEntrance();
+    var selected = selectedCourses();
+    if (!selected.length) {
+      statusEl.textContent = "Choose at least one class.";
+      weeksEl.innerHTML = "";
+      cardsEl.innerHTML = "";
+      return;
+    }
+    var plan = buildPlan(selected);
+    statusEl.textContent = week1Complete(selected, plan)
+      ? "Week 1 gets you into every class once. Week 2 is the second look."
+      : "Some classes still have to wait for week 2.";
+    renderWeeks(plan);
+    renderCards(selected, plan);
+  }
+
+  function reset() {
+    planned = false;
+    COURSES.forEach(function (course) { checked[course.code] = true; });
+    clearEntrance();
+    statusEl.textContent = "Pick the classes you might take, then plan the two weeks.";
+    weeksEl.innerHTML = "";
+    cardsEl.innerHTML = "";
+    renderCourses();
+  }
+
+  document.getElementById("plan-btn").addEventListener("click", showPlan);
+  document.getElementById("reset-btn").addEventListener("click", reset);
+  renderCourses();
+})();
+</script>
+</body>
+</html>
