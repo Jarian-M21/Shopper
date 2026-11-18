@@ -2,169 +2,330 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Shopper</title>
 <style>
   * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
   html, body {
     margin: 0;
-    height: 100%;
     background: #f4f1ea;
     color: #1a1a1a;
     font-family: system-ui, sans-serif;
   }
   body {
-    height: 100vh;
-    overflow: hidden;
+    min-height: 100vh;
     display: flex;
     flex-direction: column;
-    padding: 10px 18px 8px;
+  }
+  .accent {
+    height: 4px;
+    background: #00356b;
+    flex: none;
+  }
+  .page {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    padding: 8px 14px 6px;
+  }
+  header {
+    padding-bottom: 6px;
+    margin-bottom: 6px;
+    border-bottom: 1px solid #1a1a1a;
+  }
+  .title-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 8px 16px;
   }
   h1 {
     margin: 0;
     font-family: Palatino, Georgia, serif;
     font-weight: normal;
-    font-size: 28px;
-    line-height: 1.05;
+    font-size: 2rem;
+    line-height: 0.95;
+    letter-spacing: -0.03em;
   }
   .subtitle {
-    margin: 2px 0 6px;
-    font-size: 14px;
+    margin: 4px 0 0;
+    font-size: 0.95rem;
     line-height: 1.35;
   }
-  .actions { display: flex; gap: 8px; margin: 0 0 8px; }
+  .actions { display: flex; flex-wrap: wrap; gap: 8px; }
   button { font: inherit; cursor: pointer; }
   .primary, .ghost {
-    font-size: 14px;
-    padding: 6px 12px;
+    font-size: clamp(0.9rem, 0.84rem + 0.15vw, 1.02rem);
+    padding: 0.45rem 0.9rem;
     border-radius: 4px;
   }
   .primary {
     background: #00356b;
     color: #fff;
     border: 1px solid #00356b;
+    font-weight: 600;
   }
   .ghost {
-    background: transparent;
+    background: #fff;
     color: #1a1a1a;
     border: 1px solid #d9d3c7;
   }
   .layout {
     display: flex;
-    gap: 20px;
-    min-height: 0;
-    flex: 1;
-    align-items: stretch;
+    flex-direction: column;
+    gap: clamp(12px, 1.4vw, 22px);
+    min-width: 0;
   }
-  .courses { width: 340px; flex: none; }
+  .panel-title, .week h2 {
+    font-family: Palatino, Georgia, serif;
+    font-weight: normal;
+  }
+  .panel-title, .week h2 {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .panel-title {
+    margin: 0 0 6px;
+    font-size: 1.25rem;
+    line-height: 1;
+  }
+  .panel-title::after, .week h2::after {
+    content: "";
+    flex: 1;
+    height: 1px;
+    background: #d9d3c7;
+  }
+  .course-list { display: flex; flex-direction: column; gap: 6px; }
   .course {
     display: flex;
     gap: 8px;
     align-items: flex-start;
-    padding: 3px 0;
+    background: #fff;
+    border: 1px solid #d9d3c7;
+    padding: 7px 8px;
     line-height: 1.3;
-    font-size: 14px;
+    font-size: clamp(0.86rem, 0.8rem + 0.15vw, 0.98rem);
   }
   .course.off { opacity: 0.48; }
-  .course .code { color: #00356b; font-weight: 600; }
+  .course input {
+    margin: 3px 0 0;
+    flex: none;
+    accent-color: #00356b;
+  }
+  .swatch {
+    width: 8px;
+    align-self: stretch;
+    flex: none;
+    border-radius: 1px;
+  }
+  .course .code { color: #00356b; font-weight: 600; white-space: nowrap; }
   .course .when {
     display: block;
-    margin-top: 1px;
-    font-size: 12.5px;
+    margin-top: 2px;
+    font-size: 0.92em;
   }
-  .main {
-    flex: 1;
-    min-width: 0;
-    display: flex;
-    flex-direction: column;
-    min-height: 0;
+  .main { min-width: 0; }
+  .status {
+    margin: 0 0 4px;
+    font-size: 0.95rem;
+    line-height: 1.3;
   }
-  .status { margin: 0 0 6px; font-size: 14px; line-height: 1.3; }
   .weeks {
     display: flex;
     flex-direction: column;
     gap: 6px;
+    min-width: 0;
   }
   .week { min-width: 0; }
   .week h2 {
-    margin: 0 0 3px;
-    font-family: system-ui, sans-serif;
-    font-size: 13px;
-    font-weight: 600;
+    margin: 0 0 5px;
+    font-size: 1.35rem;
+    line-height: 1;
+    color: #00356b;
   }
   .days {
     display: grid;
-    grid-template-columns: repeat(5, minmax(0, 1fr));
-    gap: 8px;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 8.5rem), 1fr));
+    gap: 6px;
+    min-width: 0;
+  }
+  .day {
+    display: flex;
+    flex-direction: column;
+    background: #fff;
+    border: 1px solid #d9d3c7;
+    border-top: 3px solid #00356b;
   }
   .day-name {
-    font-size: 12px;
-    font-weight: 600;
-    margin-bottom: 3px;
+    margin: 0;
+    padding: 4px 8px 3px;
+    border-bottom: 1px solid #d9d3c7;
+    background: rgba(0, 53, 107, 0.06);
+    color: #00356b;
+    font-family: Palatino, Georgia, serif;
+    font-size: 15px;
+    line-height: 1.2;
+    white-space: nowrap;
   }
   .block {
     display: block;
-    width: 100%;
-    margin: 0 0 3px;
-    padding: 3px 8px;
-    border: 1px solid transparent;
-    border-radius: 2px;
+    width: auto;
+    margin: 3px 5px 0;
+    padding: 4px 7px;
+    border: 1px solid rgba(26, 26, 26, 0.16);
+    border-radius: 3px;
     text-align: left;
     font: inherit;
-    font-size: 12.5px;
-    line-height: 1.2;
+    font-size: 13px;
+    line-height: 1.25;
     font-variant-numeric: tabular-nums;
+    color: #1a1a1a;
     cursor: pointer;
   }
-  .block span {
+  .day .block:last-child { margin-bottom: 3px; }
+  .block .time,
+  .block .code,
+  .block .place {
     display: block;
     white-space: nowrap;
   }
-  .block .code { color: #00356b; font-weight: 600; }
-  .block.selected { border-color: #1a1a1a; }
-  .open { font-size: 13px; color: #8a8478; padding: 2px 0 0; }
-  .entrance { margin: 6px 0 0; font-size: 13px; line-height: 1.35; }
+  .block .code { color: #00356b; font-weight: 700; }
+  .block.selected {
+    border-color: #1a1a1a;
+    outline: 1px solid #1a1a1a;
+    outline-offset: 1px;
+  }
+  .open {
+    margin: 8px;
+    font-size: 0.86rem;
+    color: #8a8478;
+  }
+  .entrance {
+    margin: 10px 0 0;
+    background: #fff;
+    border: 1px solid #d9d3c7;
+    border-left: 4px solid #00356b;
+    padding: 8px 12px;
+    font-size: clamp(0.9rem, 0.84rem + 0.15vw, 1.02rem);
+    line-height: 1.4;
+  }
   .cards {
     margin-top: 6px;
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 24rem), 1fr));
+    gap: 8px;
+    align-items: start;
   }
   .card {
     background: #fff;
     border: 1px solid #d9d3c7;
-    padding: 5px 8px;
-    font-size: 13px;
-    line-height: 1.3;
+    border-left-width: 4px;
+    border-radius: 4px;
+    min-width: 0;
   }
-  .card p { margin: 0; }
-  .card p + p { margin-top: 2px; }
-  .card.bad { border-color: #9f2d20; color: #9f2d20; }
-  .card.good { border-color: #24574a; color: #24574a; }
-  .card h3 { margin: 0 0 2px; font-size: 13px; font-weight: 600; }
-  .card ul { margin: 0; padding-left: 16px; }
-  .card li + li { margin-top: 1px; }
-  footer { margin-top: auto; padding-top: 6px; font-size: 12px; line-height: 1.3; }
+  .card h3 {
+    margin: 0;
+    padding: 4px 10px;
+    border-bottom: 1px solid #d9d3c7;
+    font-family: Palatino, Georgia, serif;
+    font-size: 1.05rem;
+    font-weight: normal;
+    line-height: 1.2;
+  }
+  .card p {
+    margin: 0;
+    padding: 5px 10px 0;
+    font-size: 0.9rem;
+    line-height: 1.35;
+  }
+  .card p:last-child { padding-bottom: 7px; }
+  .card.bad {
+    border-color: #9f2d20;
+    color: #9f2d20;
+  }
+  .card.bad h3 { background: rgba(159, 45, 32, 0.08); }
+  .card.good {
+    border-color: #24574a;
+    color: #24574a;
+  }
+  .card.good h3 { background: rgba(36, 87, 74, 0.1); }
+  footer {
+    margin-top: auto;
+    padding-top: 6px;
+    border-top: 1px solid #d9d3c7;
+    font-size: 0.8rem;
+    line-height: 1.35;
+  }
+  @media (min-width: 1040px) {
+    .layout {
+      flex-direction: row;
+      align-items: flex-start;
+    }
+    .courses {
+      width: clamp(228px, 18vw, 340px);
+      flex: none;
+    }
+    .main { flex: 1; }
+  }
+  @media (min-width: 800px) {
+    .days { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+  }
+  @media (min-width: 1500px) {
+    .page { padding: 12px 32px 8px; }
+    h1 { font-size: 2.7rem; }
+    .subtitle { font-size: 1.05rem; }
+    .week h2 { font-size: 1.55rem; }
+    .days { gap: 12px; }
+    .day-name { font-size: 17px; padding: 5px 10px 4px; }
+    .block { font-size: 14.5px; padding: 5px 9px; margin: 4px 6px 0; }
+    .day .block:last-child { margin-bottom: 4px; }
+    .card h3 { font-size: 1.15rem; }
+    .card p { font-size: 0.98rem; }
+    .status { font-size: 1.02rem; }
+    footer { font-size: 0.9rem; }
+  }
+  @media (min-width: 1900px) {
+    .page { padding: 22px 40px 16px; }
+    h1 { font-size: 3.45rem; }
+    .week h2 { font-size: 1.9rem; }
+    .days { gap: 16px; }
+    .day-name { font-size: 22px; padding: 8px 12px 7px; }
+    .block { font-size: 17px; padding: 8px 12px; }
+    .card p { font-size: 1.08rem; }
+  }
 </style>
 </head>
 <body>
-  <header>
-    <h1>Shopper</h1>
-    <p class="subtitle">A two-week route into every class you are shopping. Back-to-backs that the walk makes impossible are marked.</p>
-    <div class="actions">
-      <button type="button" class="primary" id="plan-btn">Plan my shopping</button>
-      <button type="button" class="ghost" id="reset-btn">Reset</button>
+  <div class="accent" aria-hidden="true"></div>
+  <div class="page">
+    <header>
+      <div class="title-row">
+        <h1>Shopper</h1>
+        <div class="actions">
+          <button type="button" class="primary" id="plan-btn">Plan my shopping</button>
+          <button type="button" class="ghost" id="reset-btn">Reset</button>
+        </div>
+      </div>
+      <p class="subtitle">A two-week route into every class you are shopping. Back-to-backs that the walk makes impossible are marked.</p>
+    </header>
+    <div class="layout">
+      <aside class="courses">
+        <h2 class="panel-title">Classes</h2>
+        <div class="course-list" id="courses"></div>
+      </aside>
+      <div class="main">
+        <p class="status" id="status">Pick the classes you might take, then plan the two weeks.</p>
+        <div class="weeks" id="weeks"></div>
+        <p class="entrance" id="entrance" hidden></p>
+        <div class="cards" id="cards"></div>
+      </div>
     </div>
-  </header>
-  <div class="layout">
-    <aside class="courses" id="courses"></aside>
-    <div class="main">
-      <p class="status" id="status">Pick the classes you might take, then plan the two weeks.</p>
-      <div class="weeks" id="weeks"></div>
-      <p class="entrance" id="entrance" hidden></p>
-      <div class="cards" id="cards"></div>
-    </div>
+    <footer>Demo roster. Times follow Yale College standard meeting patterns. Walks are on foot, with no shuttle.</footer>
   </div>
-  <footer>Demo roster. Times follow Yale College standard meeting patterns. Walks are on foot, with no shuttle.</footer>
 <script>
 (function () {
   var BUILDINGS = {
@@ -277,12 +438,38 @@
     return days.slice(0, -1).join(", ") + ", and " + days[days.length - 1];
   }
 
+  function joinNames(names) {
+    if (!names.length) return "";
+    if (names.length === 1) return names[0];
+    if (names.length === 2) return names[0] + " and " + names[1];
+    return names.slice(0, -1).join(", ") + ", and " + names[names.length - 1];
+  }
+
   function weekdayOf(day) {
     return day.slice(0, 3);
   }
 
+  function courseIndex(code) {
+    for (var i = 0; i < COURSES.length; i++) {
+      if (COURSES[i].code === code) return i;
+    }
+    return COURSES.length;
+  }
+
   function selectedCourses() {
     return COURSES.filter(function (course) { return checked[course.code]; });
+  }
+
+  function sessionFrom(course, day) {
+    return {
+      code: course.code,
+      color: course.color,
+      day: day,
+      start: course.start,
+      end: course.end,
+      building: course.building,
+      room: course.room
+    };
   }
 
   function expand(selected) {
@@ -290,15 +477,7 @@
     selected.forEach(function (course) {
       DAYS.forEach(function (day) {
         if (course.days.indexOf(weekdayOf(day)) === -1) return;
-        sessions.push({
-          code: course.code,
-          color: course.color,
-          day: day,
-          start: course.start,
-          end: course.end,
-          building: course.building,
-          room: course.room
-        });
+        sessions.push(sessionFrom(course, day));
       });
     });
     return sessions;
@@ -318,21 +497,41 @@
     return 2;
   }
 
-  function seenEarlierThisWeek(code, day, result) {
-    var week = day.slice(3);
-    var names = ["Mon", "Tue", "Wed", "Thu", "Fri"];
-    var today = names.indexOf(day.slice(0, 3));
-    for (var i = 0; i < today; i++) {
-      var sessions = result[names[i] + week];
-      for (var s = 0; s < sessions.length; s++) {
-        if (sessions[s].code === code) return true;
-      }
+  function overlaps(a, b) {
+    return a.start < b.end && b.start < a.end;
+  }
+
+  function gapMinutes(a, b) {
+    if (a.end <= b.start) return b.start - a.end;
+    if (b.end <= a.start) return a.start - b.end;
+    return null;
+  }
+
+  function sharesWeekday(a, b) {
+    for (var i = 0; i < a.days.length; i++) {
+      if (b.days.indexOf(a.days[i]) !== -1) return true;
     }
     return false;
   }
 
-  function overlaps(a, b) {
-    return a.start < b.end && b.start < a.end;
+  function coursesConflict(a, b) {
+    if (!sharesWeekday(a, b)) return false;
+    if (overlaps(a, b)) return true;
+    var gap = gapMinutes(a, b);
+    if (gap === null) return false;
+    return gap < walk(a.building, b.building);
+  }
+
+  function conflictSet(selected) {
+    var set = {};
+    for (var i = 0; i < selected.length; i++) {
+      for (var j = i + 1; j < selected.length; j++) {
+        if (!coursesConflict(selected[i], selected[j])) continue;
+        set[selected[i].code] = true;
+        set[selected[j].code] = true;
+      }
+    }
+    return set;
   }
 
   function fits(chosen, session) {
@@ -345,19 +544,34 @@
     return true;
   }
 
+  function byStart(a, b) {
+    if (a.start !== b.start) return a.start - b.start;
+    if (a.code < b.code) return -1;
+    if (a.code > b.code) return 1;
+    return 0;
+  }
+
   function buildPlan(selected) {
-    var sessions = expand(selected);
+    var conflicts = conflictSet(selected);
+    var contested = selected.filter(function (course) { return conflicts[course.code]; });
+    var calm = selected.filter(function (course) { return !conflicts[course.code]; });
+    var sessions = expand(contested);
     var visited = {};
-    selected.forEach(function (course) { visited[course.code] = 0; });
+    contested.forEach(function (course) { visited[course.code] = 0; });
     var result = {};
     DAYS.forEach(function (day) { result[day] = []; });
 
+    calm.forEach(function (course) {
+      DAYS.forEach(function (day) {
+        if (course.days.indexOf(weekdayOf(day)) === -1) return;
+        result[day].push(sessionFrom(course, day));
+      });
+    });
+
     DAYS.forEach(function (day, dayIndex) {
       var candidates = sessions.filter(function (session) { return session.day === day; });
-      var chosen = [];
+      var chosen = result[day].slice();
       while (candidates.length) {
-        // A course already seen this week does not fill a later day by itself.
-        if (candidates.length === 1 && chosen.length === 0 && seenEarlierThisWeek(candidates[0].code, day, result)) break;
         candidates.sort(function (a, b) {
           var rank = seenRank(visited[a.code]) - seenRank(visited[b.code]);
           if (rank !== 0) return rank;
@@ -374,12 +588,7 @@
           visited[candidate.code]++;
         }
       }
-      chosen.sort(function (a, b) {
-        if (a.start !== b.start) return a.start - b.start;
-        if (a.code < b.code) return -1;
-        if (a.code > b.code) return 1;
-        return 0;
-      });
+      chosen.sort(byStart);
       result[day] = chosen;
     });
     return result;
@@ -429,8 +638,8 @@
   function planSentence(plan, codeA, codeB) {
     var aDays = scheduledNames(plan, codeA);
     var bDays = scheduledNames(plan, codeB);
-    var aHalf = aDays.length ? "puts " + codeA + " on " + aDays.join(" and ") : "does not get you into " + codeA;
-    var bHalf = bDays.length ? codeB + " on " + bDays.join(" and ") : "does not get you into " + codeB;
+    var aHalf = aDays.length ? "puts " + codeA + " on " + joinNames(aDays) : "does not get you into " + codeA;
+    var bHalf = bDays.length ? codeB + " on " + joinNames(bDays) : "does not get you into " + codeB;
     return "The plan " + aHalf + " and " + bHalf + ".";
   }
 
@@ -478,6 +687,9 @@
         label.className = "course" + (input.checked ? "" : " off");
         if (planned) showPlan();
       });
+      var swatch = document.createElement("span");
+      swatch.className = "swatch";
+      swatch.style.background = course.color;
       var info = document.createElement("span");
       var line1 = document.createElement("span");
       var code = document.createElement("span");
@@ -491,6 +703,7 @@
       info.appendChild(line1);
       info.appendChild(line2);
       label.appendChild(input);
+      label.appendChild(swatch);
       label.appendChild(info);
       coursesEl.appendChild(label);
     });
@@ -508,9 +721,10 @@
       days.className = "days";
       WEEKDAYS.forEach(function (weekday) {
         var col = document.createElement("div");
+        col.className = "day";
         var name = document.createElement("div");
         name.className = "day-name";
-        name.textContent = weekday;
+        name.textContent = SINGULAR[weekday];
         col.appendChild(name);
         var sessions = plan[weekday + week];
         if (!sessions.length) {
@@ -525,11 +739,13 @@
           block.className = "block";
           block.style.background = session.color;
           var when = document.createElement("span");
+          when.className = "time";
           when.textContent = formatRange(session.start, session.end);
           var code = document.createElement("span");
           code.className = "code";
           code.textContent = session.code;
           var where = document.createElement("span");
+          where.className = "place";
           where.textContent = session.building + " " + session.room;
           block.appendChild(when);
           block.appendChild(code);
@@ -585,18 +801,69 @@
     return names;
   }
 
+  function overlapLines(selected, plan, weekday) {
+    var pairs = pairsForWeekday(selected, weekday).filter(function (pair) {
+      return overlaps(pair[0], pair[1]);
+    });
+    if (!pairs.length) return [];
+
+    var parent = {};
+    function find(code) {
+      var root = code;
+      while (parent[root] !== root) root = parent[root];
+      return root;
+    }
+    function unite(a, b) {
+      if (!parent[a]) parent[a] = a;
+      if (!parent[b]) parent[b] = b;
+      var ra = find(a);
+      var rb = find(b);
+      if (ra !== rb) parent[ra] = rb;
+    }
+    pairs.forEach(function (pair) { unite(pair[0].code, pair[1].code); });
+
+    var groups = {};
+    Object.keys(parent).forEach(function (code) {
+      var root = find(code);
+      if (!groups[root]) groups[root] = [];
+      groups[root].push(code);
+    });
+
+    var lines = [];
+    Object.keys(groups).forEach(function (root) {
+      var group = groups[root].sort(function (a, b) { return courseIndex(a) - courseIndex(b); });
+      var kept = group.filter(function (code) { return appearsOn(plan, code, weekday); });
+      var dropped = group.filter(function (code) { return kept.indexOf(code) === -1; });
+      if (kept.length === 1) {
+        var direct = dropped.filter(function (code) {
+          return pairs.some(function (pair) {
+            var a = pair[0].code;
+            var b = pair[1].code;
+            return (a === kept[0] && b === code) || (b === kept[0] && a === code);
+          });
+        });
+        if (direct.length && direct.length === dropped.length) {
+          lines.push(kept[0] + " overlaps " + joinNames(direct) + " on " + SINGULAR[weekday] + ". The plan keeps " + kept[0] + ".");
+          return;
+        }
+      }
+      var mentioned = {};
+      pairs.forEach(function (pair) {
+        if (find(pair[0].code) !== root) return;
+        var key = pairKey(pair[0].code, pair[1].code);
+        if (mentioned[key]) return;
+        mentioned[key] = true;
+        var keeper = keptCourse(plan, weekday, pair[0], pair[1]);
+        lines.push(pair[0].code + " and " + pair[1].code + " overlap on " + SINGULAR[weekday] + ". The plan keeps " + keeper + ".");
+      });
+    });
+    return lines;
+  }
+
   function renderCards(selected, plan) {
     cardsEl.innerHTML = "";
     var unseen = unseenCourses(selected, plan);
-    if (unseen.length) {
-      var unseenCard = document.createElement("div");
-      unseenCard.className = "card bad";
-      unseen.forEach(function (course) {
-        addText(unseenCard, "You never see " + course.code + ". Every meeting loses to another class.");
-      });
-      cardsEl.appendChild(unseenCard);
-    }
-
+    var conflictLines = [];
     var seenWalks = {};
     WEEKDAYS.forEach(function (weekday) {
       pairsForWeekday(selected, weekday).forEach(function (pair) {
@@ -606,36 +873,27 @@
         if (seenWalks[key]) return;
         seenWalks[key] = true;
         var info = between.info;
-        var card = document.createElement("div");
-        card.className = "card bad";
-        addText(card, info.first.code + " ends in " + info.first.building + " at " + formatTime(info.first.end) + ". " + info.second.code + " starts in " + info.second.building + " at " + formatTime(info.second.start) + ". You have " + info.gap + " minutes. The walk is " + between.minutes + ".");
-        addText(card, planSentence(plan, info.first.code, info.second.code));
-        cardsEl.appendChild(card);
+        conflictLines.push(info.first.code + " ends in " + info.first.building + " at " + formatTime(info.first.end) + ". " + info.second.code + " starts in " + info.second.building + " at " + formatTime(info.second.start) + ". You have " + info.gap + " minutes. The walk is " + between.minutes + ".");
+        conflictLines.push(planSentence(plan, info.first.code, info.second.code));
+      });
+    });
+    WEEKDAYS.forEach(function (weekday) {
+      overlapLines(selected, plan, weekday).forEach(function (line) {
+        conflictLines.push(line);
       });
     });
 
-    var overlapLines = [];
-    WEEKDAYS.forEach(function (weekday) {
-      pairsForWeekday(selected, weekday).forEach(function (pair) {
-        if (!gapInfo(pair[0], pair[1]).overlap) return;
-        var kept = keptCourse(plan, weekday, pair[0], pair[1]);
-        overlapLines.push(pair[0].code + " and " + pair[1].code + " overlap on " + SINGULAR[weekday] + ". The plan keeps " + kept + ".");
+    if (unseen.length || conflictLines.length) {
+      var bad = document.createElement("div");
+      bad.className = "card bad";
+      var badHeading = document.createElement("h3");
+      badHeading.textContent = conflictLines.length ? "Conflict" : "Missing";
+      bad.appendChild(badHeading);
+      unseen.forEach(function (course) {
+        addText(bad, "You never see " + course.code + ". Every meeting loses to another class.");
       });
-    });
-    if (overlapLines.length) {
-      var same = document.createElement("div");
-      same.className = "card";
-      var heading = document.createElement("h3");
-      heading.textContent = "Same hour.";
-      same.appendChild(heading);
-      var list = document.createElement("ul");
-      overlapLines.forEach(function (line) {
-        var item = document.createElement("li");
-        item.textContent = line;
-        list.appendChild(item);
-      });
-      same.appendChild(list);
-      cardsEl.appendChild(same);
+      conflictLines.forEach(function (line) { addText(bad, line); });
+      cardsEl.appendChild(bad);
     }
 
     var best = null;
@@ -657,6 +915,9 @@
     if (best) {
       var calm = document.createElement("div");
       calm.className = "card good";
+      var goodHeading = document.createElement("h3");
+      goodHeading.textContent = "Made it";
+      calm.appendChild(goodHeading);
       var first = best.info.first;
       var second = best.info.second;
       var days = fittingDayNames(best.courses[0], best.courses[1]);
