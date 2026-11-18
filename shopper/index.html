@@ -17,19 +17,19 @@
     overflow: hidden;
     display: flex;
     flex-direction: column;
-    padding: 10px 16px 8px;
+    padding: 10px 18px 8px;
   }
   h1 {
     margin: 0;
     font-family: Palatino, Georgia, serif;
     font-weight: normal;
     font-size: 28px;
-    line-height: 1.1;
+    line-height: 1.05;
   }
   .subtitle {
-    margin: 2px 0 8px;
+    margin: 2px 0 6px;
     font-size: 14px;
-    line-height: 1.3;
+    line-height: 1.35;
   }
   .actions { display: flex; gap: 8px; margin: 0 0 8px; }
   button { font: inherit; cursor: pointer; }
@@ -50,9 +50,10 @@
   }
   .layout {
     display: flex;
-    gap: 16px;
+    gap: 20px;
     min-height: 0;
     flex: 1;
+    align-items: stretch;
   }
   .courses { width: 340px; flex: none; }
   .course {
@@ -60,7 +61,7 @@
     gap: 8px;
     align-items: flex-start;
     padding: 3px 0;
-    line-height: 1.25;
+    line-height: 1.3;
     font-size: 14px;
   }
   .course.off { opacity: 0.48; }
@@ -78,36 +79,49 @@
     min-height: 0;
   }
   .status { margin: 0 0 6px; font-size: 14px; line-height: 1.3; }
-  .weeks { display: flex; gap: 10px; }
-  .week { flex: 1; min-width: 0; }
+  .weeks {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .week { min-width: 0; }
   .week h2 {
-    margin: 0 0 4px;
+    margin: 0 0 3px;
     font-family: system-ui, sans-serif;
     font-size: 13px;
     font-weight: 600;
   }
   .days {
     display: grid;
-    grid-template-columns: repeat(5, 1fr);
-    gap: 4px;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 8px;
   }
-  .day-name { font-size: 11px; margin-bottom: 3px; }
+  .day-name {
+    font-size: 12px;
+    font-weight: 600;
+    margin-bottom: 3px;
+  }
   .block {
     display: block;
     width: 100%;
     margin: 0 0 3px;
-    padding: 3px 4px;
+    padding: 3px 8px;
     border: 1px solid transparent;
+    border-radius: 2px;
     text-align: left;
     font: inherit;
-    font-size: 11px;
-    line-height: 1.25;
+    font-size: 12.5px;
+    line-height: 1.2;
+    font-variant-numeric: tabular-nums;
     cursor: pointer;
   }
-  .block span { display: block; }
+  .block span {
+    display: block;
+    white-space: nowrap;
+  }
   .block .code { color: #00356b; font-weight: 600; }
   .block.selected { border-color: #1a1a1a; }
-  .open { font-size: 11px; color: #8a8478; padding: 2px 0 0; }
+  .open { font-size: 13px; color: #8a8478; padding: 2px 0 0; }
   .entrance { margin: 6px 0 0; font-size: 13px; line-height: 1.35; }
   .cards {
     margin-top: 6px;
@@ -119,8 +133,8 @@
     background: #fff;
     border: 1px solid #d9d3c7;
     padding: 5px 8px;
-    font-size: 12.5px;
-    line-height: 1.35;
+    font-size: 13px;
+    line-height: 1.3;
   }
   .card p { margin: 0; }
   .card p + p { margin-top: 2px; }
@@ -129,7 +143,7 @@
   .card h3 { margin: 0 0 2px; font-size: 13px; font-weight: 600; }
   .card ul { margin: 0; padding-left: 16px; }
   .card li + li { margin-top: 1px; }
-  footer { margin-top: 6px; font-size: 11px; line-height: 1.3; }
+  footer { margin-top: auto; padding-top: 6px; font-size: 12px; line-height: 1.3; }
 </style>
 </head>
 <body>
@@ -549,6 +563,28 @@
     parent.appendChild(p);
   }
 
+  function pairKey(a, b) {
+    return a < b ? a + "|" + b : b + "|" + a;
+  }
+
+  function walkBetween(a, b) {
+    var info = gapInfo(a, b);
+    if (info.overlap || info.gap === null) return null;
+    var minutes = walk(info.first.building, info.second.building);
+    return { info: info, minutes: minutes, slack: info.gap - minutes };
+  }
+
+  function fittingDayNames(a, b) {
+    var names = [];
+    WEEKDAYS.forEach(function (weekday) {
+      if (a.days.indexOf(weekday) === -1 || b.days.indexOf(weekday) === -1) return;
+      var between = walkBetween(a, b);
+      if (!between || between.slack < 0) return;
+      names.push(PLURAL[weekday]);
+    });
+    return names;
+  }
+
   function renderCards(selected, plan) {
     cardsEl.innerHTML = "";
     var unseen = unseenCourses(selected, plan);
@@ -561,15 +597,18 @@
       cardsEl.appendChild(unseenCard);
     }
 
+    var seenWalks = {};
     WEEKDAYS.forEach(function (weekday) {
       pairsForWeekday(selected, weekday).forEach(function (pair) {
-        var info = gapInfo(pair[0], pair[1]);
-        if (info.overlap || info.gap === null) return;
-        var minutes = walk(info.first.building, info.second.building);
-        if (info.gap >= minutes) return;
+        var between = walkBetween(pair[0], pair[1]);
+        if (!between || between.slack >= 0) return;
+        var key = pairKey(pair[0].code, pair[1].code);
+        if (seenWalks[key]) return;
+        seenWalks[key] = true;
+        var info = between.info;
         var card = document.createElement("div");
         card.className = "card bad";
-        addText(card, info.first.code + " ends in " + info.first.building + " at " + formatTime(info.first.end) + ". " + info.second.code + " starts in " + info.second.building + " at " + formatTime(info.second.start) + ". You have " + info.gap + " minutes. The walk is " + minutes + ".");
+        addText(card, info.first.code + " ends in " + info.first.building + " at " + formatTime(info.first.end) + ". " + info.second.code + " starts in " + info.second.building + " at " + formatTime(info.second.start) + ". You have " + info.gap + " minutes. The walk is " + between.minutes + ".");
         addText(card, planSentence(plan, info.first.code, info.second.code));
         cardsEl.appendChild(card);
       });
@@ -602,14 +641,16 @@
     var best = null;
     WEEKDAYS.forEach(function (weekday, weekdayIndex) {
       pairsForWeekday(selected, weekday).forEach(function (pair) {
-        var info = gapInfo(pair[0], pair[1]);
-        if (info.overlap || info.gap === null) return;
-        var minutes = walk(info.first.building, info.second.building);
-        if (info.gap < minutes) return;
-        var slack = info.gap - minutes;
-        if (slack > 20) return;
-        if (!best || slack < best.slack || (slack === best.slack && weekdayIndex < best.weekdayIndex)) {
-          best = { slack: slack, weekdayIndex: weekdayIndex, info: info, minutes: minutes };
+        var between = walkBetween(pair[0], pair[1]);
+        if (!between || between.slack < 0 || between.slack > 20) return;
+        if (!best || between.slack < best.slack || (between.slack === best.slack && weekdayIndex < best.weekdayIndex)) {
+          best = {
+            slack: between.slack,
+            weekdayIndex: weekdayIndex,
+            info: between.info,
+            minutes: between.minutes,
+            courses: pair
+          };
         }
       });
     });
@@ -618,7 +659,8 @@
       calm.className = "card good";
       var first = best.info.first;
       var second = best.info.second;
-      addText(calm, "You can make this one. " + first.code + " ends in " + first.building + " at " + formatTime(first.end) + " and " + second.code + " starts in " + second.building + " at " + formatTime(second.start) + ". You have " + best.info.gap + " minutes, and the walk is " + best.minutes + ".");
+      var days = fittingDayNames(best.courses[0], best.courses[1]);
+      addText(calm, "You can make " + second.code + ". " + first.code + " ends in " + first.building + " at " + formatTime(first.end) + " and " + second.code + " starts in " + second.building + " at " + formatTime(second.start) + " on " + days.join(" and ") + ". You have " + best.info.gap + " minutes, and the walk is " + best.minutes + ".");
       cardsEl.appendChild(calm);
     }
   }
